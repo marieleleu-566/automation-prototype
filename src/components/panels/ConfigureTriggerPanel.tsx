@@ -87,7 +87,7 @@ function PetFiltersBody({ filters, onFiltersChange }: { filters: string[]; onFil
 }
 
 export default function ConfigureTriggerPanel({ trigger, onSave, onCancel }: Props) {
-  const [membershipType, setMembershipType] = useState(trigger.config.membershipType ?? 'added')
+  const [membershipType, setMembershipType] = useState(trigger.config.membershipType ?? '')
   const [selectedLists, setSelectedLists] = useState<string[]>(trigger.config.selectedLists ?? [])
   const [filters, setFilters] = useState<string[]>(trigger.config.filters ?? [])
   const [membershipOpen, setMembershipOpen] = useState(false)
@@ -110,7 +110,7 @@ export default function ConfigureTriggerPanel({ trigger, onSave, onCancel }: Pro
     }
   }
 
-  const selectedLabel = MEMBERSHIP_TYPES.find(m => m.id === membershipType)?.label ?? 'Added to a list'
+  const selectedLabel = MEMBERSHIP_TYPES.find(m => m.id === membershipType)?.label ?? ''
 
   return (
     <div className="side-panel">
@@ -160,7 +160,7 @@ export default function ConfigureTriggerPanel({ trigger, onSave, onCancel }: Pro
                 className={`custom-select ${membershipOpen ? 'open' : ''}`}
                 onClick={() => { setMembershipOpen(v => !v); setListOpen(false) }}
               >
-                <span>{selectedLabel}</span>
+                <span style={{ color: selectedLabel ? '#1b1b1b' : '#9ca3af' }}>{selectedLabel || 'Select...'}</span>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                   {membershipOpen && (
                     <button
