@@ -282,10 +282,17 @@ function renderActionPreview(action: ActionNode) {
   const { actionId, config = {} } = action
 
   if (actionId === 'sendEmail') {
-    const subject = config.subject || 'Welcome to VetinParis, {{contact.firstName}}!'
+    const subject = config.subject || 'Welcome to VetinParis {{PET_NAME}}'
+    const parts = subject.split(/({{[^}]+}})/)
     return (
       <div className="action-preview">
-        <div className="action-preview-title" style={{ marginBottom: 6 }}>{subject}</div>
+        <div className="action-preview-title" style={{ marginBottom: 6, flexWrap: 'wrap', gap: 3 }}>
+          {parts.map((p: string, i: number) =>
+            p.startsWith('{{') && p.endsWith('}}')
+              ? <span key={i} style={{ display: 'inline-block', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 4, padding: '0 5px', fontSize: 11, fontWeight: 600, color: '#1b1b1b', lineHeight: '18px', fontFamily: 'monospace' }}>{p.slice(2, -2)}</span>
+              : <span key={i}>{p}</span>
+          )}
+        </div>
         <div className="email-preview-thumb" style={{ height: 'auto', display: 'block', padding: 0 }}>
           <div style={{ background: '#F43F5E', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 7, fontWeight: 800, color: '#fff', letterSpacing: 0.8 }}>VETINPARIS</span>

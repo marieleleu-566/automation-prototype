@@ -208,7 +208,7 @@ function DurationInput({ value, unit, onValueChange, onUnitChange, units }: {
 
 function SendEmailBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [sender, setSender] = useState('')
-  const [subject, setSubject] = useState('Welcome to VetinParis, {{contact.firstName}}!')
+  const [subject, setSubject] = useState('Welcome to VetinParis {{PET_NAME}}')
 
   useEffect(() => {
     onConfig({ subject, sender })
