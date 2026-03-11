@@ -72,20 +72,20 @@ export default function App() {
     })
   }
 
-  const onCancelTrigger = (id: string) => {
-    const trigger = state.triggers.find(t => t.id === id)
-    if (trigger && !trigger.configured) {
-      update({ triggers: state.triggers.filter(t => t.id !== id), panel: null, editingTriggerId: null })
-    } else {
-      update({ panel: null, editingTriggerId: null })
-    }
+  const onCancelTrigger = (_id: string) => {
+    update({ panel: null, editingTriggerId: null })
   }
 
   const onClickTrigger = (id: string) => {
     update({ editingTriggerId: id, panel: 'configureTrigger' })
   }
 
-  const openSelectAction = () => update({ panel: 'selectAction' })
+  const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null)
+
+  const openSelectAction = (idx?: number) => {
+    setInsertAfterIndex(idx ?? null)
+    update({ panel: 'selectAction' })
+  }
 
   const onSelectAction = (def: ActionDef) => {
     const id = `action-${Date.now()}`
@@ -94,23 +94,24 @@ export default function App() {
       iconColor: def.iconColor, iconBg: def.iconBg,
       configured: false
     }
-    update({ actions: [...state.actions, newAction], editingActionId: id, panel: 'configureAction' })
+    const insertIdx = insertAfterIndex !== null ? insertAfterIndex + 1 : state.actions.length
+    const newActions = [
+      ...state.actions.slice(0, insertIdx),
+      newAction,
+      ...state.actions.slice(insertIdx),
+    ]
+    update({ actions: newActions, editingActionId: id, panel: 'configureAction' })
   }
 
-  const onSaveAction = (id: string) => {
+  const onSaveAction = (id: string, config: Record<string, any>) => {
     update({
-      actions: state.actions.map(a => a.id === id ? { ...a, configured: true } : a),
+      actions: state.actions.map(a => a.id === id ? { ...a, configured: true, config } : a),
       panel: null, editingActionId: null,
     })
   }
 
-  const onCancelAction = (id: string) => {
-    const action = state.actions.find(a => a.id === id)
-    if (action && !action.configured) {
-      update({ actions: state.actions.filter(a => a.id !== id), panel: null, editingActionId: null })
-    } else {
-      update({ panel: null, editingActionId: null })
-    }
+  const onCancelAction = (_id: string) => {
+    update({ panel: null, editingActionId: null })
   }
 
   const onClickAction = (id: string) => update({ editingActionId: id, panel: 'configureAction' })
@@ -164,10 +165,24 @@ export default function App() {
             onPickTrigger={openSelectTrigger}
             onAddTrigger={openSelectTrigger}
             onClickTrigger={onClickTrigger}
-            onClickDropZone={openSelectAction}
+            onClickDropZone={(idx?: number) => openSelectAction(idx)}
             onClickAction={onClickAction}
             onDropTrigger={onSelectTrigger}
-            onDropAction={onSelectAction}
+            onDropAction={(def: ActionDef, idx?: number) => {
+              const id = `action-${Date.now()}`
+              const newAction: ActionNode = {
+                id, actionId: def.id, name: def.name,
+                iconColor: def.iconColor, iconBg: def.iconBg,
+                configured: false
+              }
+              const insertIdx = idx !== undefined ? idx + 1 : state.actions.length
+              const newActions = [
+                ...state.actions.slice(0, insertIdx),
+                newAction,
+                ...state.actions.slice(insertIdx),
+              ]
+              update({ actions: newActions, editingActionId: id, panel: 'configureAction' })
+            }}
             onDeleteTrigger={onDeleteTrigger}
             onDeleteAction={onDeleteAction}
           />

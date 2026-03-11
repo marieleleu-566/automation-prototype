@@ -33,10 +33,10 @@ interface CanvasProps {
   onPickTrigger: () => void
   onAddTrigger: () => void
   onClickTrigger: (id: string) => void
-  onClickDropZone: () => void
+  onClickDropZone: (insertAfterIndex?: number) => void
   onClickAction: (id: string) => void
   onDropTrigger: (def: TriggerDef) => void
-  onDropAction: (def: ActionDef) => void
+  onDropAction: (def: ActionDef, insertAfterIndex?: number) => void
   onDeleteTrigger: (id: string) => void
   onDeleteAction: (id: string) => void
 }
@@ -60,10 +60,12 @@ function ArrowConnector({
   onClick,
   isDragging,
   onDrop,
+  insertAfterIndex,
 }: {
-  onClick?: () => void
+  onClick?: (insertAfterIndex?: number) => void
   isDragging?: boolean
-  onDrop?: (e: React.DragEvent) => void
+  onDrop?: (e: React.DragEvent, insertAfterIndex?: number) => void
+  insertAfterIndex?: number
 }) {
   const [hovered, setHovered] = useState(false)
   const [dropHovered, setDropHovered] = useState(false)
@@ -79,7 +81,7 @@ function ArrowConnector({
   const handleDragLeave = () => setDropHovered(false)
   const handleDrop = (e: React.DragEvent) => {
     setDropHovered(false)
-    onDrop?.(e)
+    onDrop?.(e, insertAfterIndex)
   }
 
   return (
@@ -94,7 +96,7 @@ function ArrowConnector({
     >
       <ArrowSVG color={dropHovered ? ARROW_HOVER : lineColor} />
       {active && !isDragging && (
-        <button className="arrow-add-btn" onClick={e => { e.stopPropagation(); onClick() }}>
+        <button className="arrow-add-btn" onClick={e => { e.stopPropagation(); onClick(insertAfterIndex) }}>
           <Plus size={14} />
         </button>
       )}
@@ -276,6 +278,238 @@ function ActionIcon({ actionId, color }: { actionId: string; color: string }) {
   return <List size={14} style={style} />
 }
 
+function renderActionPreview(action: ActionNode) {
+  const { actionId, config = {} } = action
+
+  if (actionId === 'sendEmail') {
+    const subject = config.subject || 'Welcome to VetinParis, {{contact.firstName}}!'
+    return (
+      <div className="action-preview">
+        <div className="action-preview-title" style={{ marginBottom: 6 }}>{subject}</div>
+        <div className="email-preview-thumb" style={{ height: 'auto', display: 'block', padding: 0 }}>
+          <div style={{ background: '#F43F5E', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 7, fontWeight: 800, color: '#fff', letterSpacing: 0.8 }}>VETINPARIS</span>
+            <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.75)' }}>Newsletter</span>
+          </div>
+          <div style={{ background: '#fde8ec', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0', fontSize: 30, lineHeight: 1 }}>&#x1F415;</div>
+          <div style={{ padding: '5px 8px 7px' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#1b1b1b', marginBottom: 2 }}>
+              Welcome, <span style={{ color: '#F43F5E' }}>Max</span>!
+            </div>
+            <div style={{ fontSize: 8, color: '#696969', lineHeight: '12px' }}>We're so happy you trusted us with your furry friend at our clinic...</div>
+            <div style={{ marginTop: 5 }}>
+              <span style={{ background: '#F43F5E', color: '#fff', fontSize: 7, fontWeight: 600, padding: '2px 8px', borderRadius: 100 }}>Book appointment</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'sendSms') {
+    const msg = config.message || 'Hello {{contact.firstName}}, your appointment is confirmed.'
+    return (
+      <div className="action-preview">
+        <div style={{ background: '#f0f9ff', borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#1b1b1b', lineHeight: '16px' }}>
+          {msg.length > 80 ? msg.slice(0, 80) + '\u2026' : msg || 'No message set'}
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'sendPushNotification') {
+    return (
+      <div className="action-preview">
+        <div style={{ background: '#f9fafb', border: '1px solid #e3e3e3', borderRadius: 8, padding: '6px 10px' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#1b1b1b', marginBottom: 2 }}>{config.title || 'New message from VetinParis'}</div>
+          <div style={{ fontSize: 10, color: '#696969' }}>{config.body || 'Your pet\'s appointment is confirmed.'}</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'sendWhatsapp') {
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          Template: <strong>{config.template || '\u2014'}</strong>
+          {config.lang ? <span style={{ color: '#696969' }}> \u00b7 {config.lang}</span> : null}
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'timeDelay') {
+    const amount = config.amount ?? 1
+    const unit = (config.unit || 'Days').toLowerCase()
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          Wait <strong>{amount} {amount === 1 ? unit.replace(/s$/, '') : unit}</strong> before next step
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'waitUntilEvent') {
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          Wait until <strong>{config.event || 'event'}</strong>
+        </div>
+        <div style={{ fontSize: 11, color: '#696969', marginTop: 2 }}>
+          Timeout: {config.timeout ?? 7} {(config.timeoutUnit || 'Days').toLowerCase()}
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'conditionalSplit') {
+    const conditions: Array<{field: string, operator: string, value: string}> = config.conditions || [{ field: 'Pet type', operator: 'is', value: 'Dog' }]
+    const logic: string = config.logic || 'AND'
+    return (
+      <div className="action-preview">
+        {conditions.filter((c: {field: string}) => c.field).map((c: {field: string, operator: string, value: string}, i: number) => (
+          <div key={i} style={{ fontSize: 11, color: '#1b1b1b', marginBottom: i < conditions.length - 1 ? 2 : 0 }}>
+            {i > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: '#696969', marginRight: 4 }}>{logic}</span>}
+            <strong>{c.field}</strong> {c.operator} {c.value ? <em>{c.value}</em> : null}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (actionId === 'percentageSplit') {
+    const a = config.splitA ?? 50
+    const b = 100 - a
+    return (
+      <div className="action-preview">
+        <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 4 }}>
+          <div style={{ width: `${a}%`, background: '#6358DE' }} />
+          <div style={{ width: `${b}%`, background: '#a78bfa' }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#696969' }}>
+          <span>Branch A: <strong style={{ color: '#6358DE' }}>{a}%</strong></span>
+          <span>Branch B: <strong style={{ color: '#a78bfa' }}>{b}%</strong></span>
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'petListUpdate' || actionId === 'contactListUpdate') {
+    const lists: string[] = config.lists || []
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          <strong>{config.action || 'Add to list'}</strong>
+          {lists.length > 0 && <span style={{ color: '#696969' }}>: {lists.join(', ')}</span>}
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'updateContactAttribute' || actionId === 'updatePetAttribute' || actionId === 'updateCompanyAttribute') {
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          {config.attr ? <><strong>{config.attr}</strong><span style={{ color: '#696969' }}> \u2192 {config.op || 'set'}</span></> : <span style={{ color: '#696969' }}>No attribute selected</span>}
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'createTask') {
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          {config.assignee ? <span>Assign to: <strong>{config.assignee}</strong></span> : null}
+          {config.priority ? <span style={{ color: '#696969', marginLeft: 6 }}>\u00b7 {config.priority}</span> : null}
+          {!config.assignee && !config.priority ? <span style={{ color: '#696969' }}>Follow up task</span> : null}
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'assignUserToContact') {
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          {config.mode === 'Specific user' && config.user ? <span>Assign to <strong>{config.user}</strong></span>
+          : config.mode ? <span><strong>{config.mode}</strong></span>
+          : <span style={{ color: '#696969' }}>No assignment set</span>}
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'deleteContact' || actionId === 'deletePet') {
+    const label = actionId === 'deletePet' ? 'pet' : 'contact'
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 11, color: '#e00000' }}>Permanently delete {label}</div>
+      </div>
+    )
+  }
+
+  if (actionId === 'blocklistContact' || actionId === 'blocklistPet') {
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          {config.reason ? <span>Reason: <strong>{config.reason}</strong></span> : <span style={{ color: '#696969' }}>No reason set</span>}
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'dealManagement') {
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          <strong>{config.dealAction || 'Deal action'}</strong>
+          {config.pipeline ? <span style={{ color: '#696969' }}>: {config.pipeline}{config.stage ? ` \u2192 ${config.stage}` : ''}</span> : null}
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'startAnotherAutomation') {
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          \u2192 <strong>{config.automation || 'Select automation'}</strong>
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'goToAnotherStep') {
+    return (
+      <div className="action-preview">
+        <div style={{ fontSize: 12, color: '#1b1b1b' }}>
+          \u2192 <strong>{config.step || 'Select step'}</strong>
+        </div>
+      </div>
+    )
+  }
+
+  if (actionId === 'moveToWalletCampaign' || actionId === 'sendWalletNotification' || actionId === 'moveToWalletAndNotify') {
+    return (
+      <div className="action-preview">
+        {config.campaign ? <div style={{ fontSize: 12, color: '#1b1b1b' }}>Campaign: <strong>{config.campaign}</strong></div> : null}
+        {config.notif ? <div style={{ fontSize: 11, color: '#696969', marginTop: 2 }}>Notif: {config.notif}</div> : null}
+        {!config.campaign && !config.notif ? <div style={{ fontSize: 12, color: '#696969' }}>No configuration</div> : null}
+      </div>
+    )
+  }
+
+  // Default fallback
+  return (
+    <div className="action-preview">
+      <div style={{ fontSize: 12, color: '#696969' }}>Configured</div>
+    </div>
+  )
+}
+
 export default function Canvas({
   triggers, actions, editingTriggerId, editingActionId,
   onPickTrigger, onAddTrigger, onClickTrigger, onClickDropZone, onClickAction,
@@ -351,7 +585,7 @@ export default function Canvas({
     } catch {}
   }
 
-  const handleArrowDrop = (e: React.DragEvent) => {
+  const handleArrowDrop = (e: React.DragEvent, insertIdx?: number) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
@@ -359,7 +593,7 @@ export default function Canvas({
       const raw = e.dataTransfer.getData('application/json')
       if (!raw) return
       const data = JSON.parse(raw)
-      if (data.type === 'action') onDropAction(data.def)
+      if (data.type === 'action') onDropAction(data.def, insertIdx)
     } catch {}
   }
 
@@ -484,13 +718,13 @@ export default function Canvas({
             </div>
 
             {triggers.length > 1 ? (
-              <MergeConnector count={triggers.length} onClick={onClickDropZone} isDragging={isDragging} onDrop={handleArrowDrop} />
+              <MergeConnector count={triggers.length} onClick={() => onClickDropZone(-1)} isDragging={isDragging} onDrop={(e) => handleArrowDrop(e, -1)} />
             ) : (
-              <ArrowConnector onClick={onClickDropZone} isDragging={isDragging} onDrop={handleArrowDrop} />
+              <ArrowConnector onClick={onClickDropZone} isDragging={isDragging} onDrop={handleArrowDrop} insertAfterIndex={-1} />
             )}
 
             {actions.length > 0 ? (
-              actions.map((action) => (
+              actions.map((action, index) => (
                 <div key={action.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div
                     className={`action-node ${editingActionId === action.id ? 'selected' : ''} ${!action.configured ? 'warning' : ''}`}
@@ -506,33 +740,7 @@ export default function Canvas({
                       <NodeMenu items={actionMenuItems(() => onDeleteAction(action.id))} />
                     </div>
                     <div className="action-node-body">
-                      {action.configured ? (
-                        <div className="action-preview">
-                          <div className="action-preview-title">
-                            Welcome to VetinParis{' '}
-                            <span className="action-preview-chip">PET_NAME</span>
-                          </div>
-                          <div className="action-preview-desc">We're so happy you trusted us to treat M...</div>
-                          <div className="email-preview-thumb" style={{ height: 'auto', display: 'block', padding: 0 }}>
-                            <div style={{ background: '#F43F5E', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: 7, fontWeight: 800, color: '#fff', letterSpacing: 0.8 }}>VETINPARIS</span>
-                              <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.75)' }}>Newsletter</span>
-                            </div>
-                            <div style={{ background: '#fde8ec', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0', fontSize: 30, lineHeight: 1 }}>🐕</div>
-                            <div style={{ padding: '5px 8px 7px' }}>
-                              <div style={{ fontSize: 9, fontWeight: 700, color: '#1b1b1b', marginBottom: 2 }}>
-                                Welcome, <span style={{ color: '#F43F5E' }}>Max</span>!
-                              </div>
-                              <div style={{ fontSize: 8, color: '#696969', lineHeight: '12px' }}>
-                                We're so happy you trusted us with your furry friend at our clinic...
-                              </div>
-                              <div style={{ marginTop: 5 }}>
-                                <span style={{ background: '#F43F5E', color: '#fff', fontSize: 7, fontWeight: 600, padding: '2px 8px', borderRadius: 100 }}>Book appointment</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
+                      {action.configured ? renderActionPreview(action) : (
                         <div className="trigger-node-warning">
                           <AlertCircle size={12} />
                           Define and save this action
@@ -540,7 +748,7 @@ export default function Canvas({
                       )}
                     </div>
                   </div>
-                  <ArrowConnector onClick={onClickDropZone} isDragging={isDragging} onDrop={handleArrowDrop} />
+                  <ArrowConnector onClick={onClickDropZone} isDragging={isDragging} onDrop={handleArrowDrop} insertAfterIndex={index} />
                 </div>
               ))
             ) : null}

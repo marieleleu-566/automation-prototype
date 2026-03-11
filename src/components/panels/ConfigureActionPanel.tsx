@@ -61,10 +61,16 @@ function FieldLabel({ label, required }: { label: string; required?: boolean }) 
   )
 }
 
-function TextInput({ placeholder, defaultValue }: { placeholder?: string; defaultValue?: string }) {
+function TextInput({ placeholder, defaultValue, value, onChange }: {
+  placeholder?: string; defaultValue?: string; value?: string; onChange?: (v: string) => void
+}) {
   return (
     <div className="action-input-row">
-      <input className="action-input" placeholder={placeholder} defaultValue={defaultValue} />
+      <input
+        className="action-input"
+        placeholder={placeholder}
+        {...(value !== undefined ? { value, onChange: e => onChange?.(e.target.value) } : { defaultValue })}
+      />
       <button className="action-braces-btn">{'{}'}</button>
     </div>
   )
@@ -200,8 +206,13 @@ function DurationInput({ value, unit, onValueChange, onUnitChange, units }: {
 
 // ─── Action bodies ───────────────────────────────────────────────────────────
 
-function SendEmailBody() {
+function SendEmailBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [sender, setSender] = useState('')
+  const [subject, setSubject] = useState('Welcome to VetinParis, {{contact.firstName}}!')
+
+  useEffect(() => {
+    onConfig({ subject, sender })
+  }, [subject, sender])
 
   return (
     <>
@@ -251,7 +262,7 @@ function SendEmailBody() {
       <div className="action-panel-section">
         <SectionTitle label="Subject" />
         <FieldLabel label="Subject line" required />
-        <TextInput defaultValue="Welcome to VetinParis, {{contact.firstName}}!" />
+        <TextInput value={subject} onChange={setSubject} />
         <div style={{ marginTop: 16 }}>
           <FieldLabel label="Preview text" />
           <TextInput defaultValue="Your new furry family member is in good hands." />
@@ -285,9 +296,14 @@ function SendEmailBody() {
   )
 }
 
-function SendSmsBody() {
+function SendSmsBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
+  const [message, setMessage] = useState('')
   const [charCount, setCharCount] = useState(0)
   const MAX = 160
+
+  useEffect(() => {
+    onConfig({ message })
+  }, [message])
 
   return (
     <>
@@ -311,7 +327,8 @@ function SendSmsBody() {
                 boxSizing: 'border-box', height: 100,
               }}
               placeholder="Hello {{contact.firstName}}, your appointment is confirmed."
-              onChange={e => setCharCount(e.target.value.length)}
+              value={message}
+              onChange={e => { setMessage(e.target.value); setCharCount(e.target.value.length) }}
             />
             <div style={{ borderTop: '1px solid #e3e3e3', padding: '6px 16px', display: 'flex', justifyContent: 'flex-end' }}>
               <button className="action-braces-btn" style={{ border: 'none' }}>{'{}'}</button>
@@ -336,13 +353,20 @@ function SendSmsBody() {
   )
 }
 
-function SendPushBody() {
+function SendPushBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
+  const [title, setTitle] = useState('')
+  const [body, setBody] = useState('')
+
+  useEffect(() => {
+    onConfig({ title, body })
+  }, [title, body])
+
   return (
     <>
       <div className="action-panel-section">
         <SectionTitle label="Content" />
         <FieldLabel label="Title" required />
-        <TextInput placeholder="New message from VetinParis" />
+        <TextInput value={title} onChange={setTitle} placeholder="New message from VetinParis" />
         <div style={{ marginTop: 16 }}>
           <FieldLabel label="Message" required />
           <TextArea placeholder="Your pet's appointment is confirmed for tomorrow at 10:00 AM." rows={3} />
@@ -370,9 +394,13 @@ function SendPushBody() {
   )
 }
 
-function SendWhatsAppBody() {
+function SendWhatsAppBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [template, setTemplate] = useState('')
   const [lang, setLang] = useState('')
+
+  useEffect(() => {
+    onConfig({ template, lang })
+  }, [template, lang])
 
   return (
     <>
@@ -415,9 +443,13 @@ function SendWhatsAppBody() {
   )
 }
 
-function TimeDelayBody() {
+function TimeDelayBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [amount, setAmount] = useState(1)
   const [unit, setUnit] = useState('Days')
+
+  useEffect(() => {
+    onConfig({ amount, unit })
+  }, [amount, unit])
 
   return (
     <div className="action-panel-section">
@@ -434,10 +466,14 @@ function TimeDelayBody() {
   )
 }
 
-function WaitUntilEventBody() {
+function WaitUntilEventBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [event, setEvent] = useState('')
   const [timeout, setTimeoutVal] = useState(7)
   const [timeoutUnit, setTimeoutUnit] = useState('Days')
+
+  useEffect(() => {
+    onConfig({ event, timeout, timeoutUnit })
+  }, [event, timeout, timeoutUnit])
 
   return (
     <>
@@ -462,9 +498,13 @@ function WaitUntilEventBody() {
 
 interface Condition { field: string; operator: string; value: string }
 
-function ConditionalSplitBody() {
+function ConditionalSplitBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [conditions, setConditions] = useState<Condition[]>([{ field: 'Pet type', operator: 'is', value: 'Dog' }])
   const [logic, setLogic] = useState<'AND' | 'OR'>('AND')
+
+  useEffect(() => {
+    onConfig({ conditions, logic })
+  }, [conditions, logic])
 
   const update = (i: number, c: Condition) => setConditions(prev => prev.map((x, j) => j === i ? c : x))
   const remove = (i: number) => setConditions(prev => prev.filter((_, j) => j !== i))
@@ -527,8 +567,12 @@ function ConditionalSplitBody() {
   )
 }
 
-function PercentageSplitBody() {
+function PercentageSplitBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [splitA, setSplitA] = useState(50)
+
+  useEffect(() => {
+    onConfig({ splitA })
+  }, [splitA])
   const splitB = 100 - splitA
 
   return (
@@ -562,9 +606,13 @@ function PercentageSplitBody() {
   )
 }
 
-function UpdateAttributeBody({ isPet }: { isPet: boolean }) {
+function UpdateAttributeBody({ isPet, onConfig }: { isPet: boolean; onConfig: (c: Record<string, any>) => void }) {
   const [attr, setAttr] = useState('')
   const [op, setOp] = useState('')
+
+  useEffect(() => {
+    onConfig({ attr, op })
+  }, [attr, op])
 
   return (
     <div className="action-panel-section">
@@ -589,9 +637,13 @@ function UpdateAttributeBody({ isPet }: { isPet: boolean }) {
   )
 }
 
-function ListUpdateBody({ isPet }: { isPet: boolean }) {
+function ListUpdateBody({ isPet, onConfig }: { isPet: boolean; onConfig: (c: Record<string, any>) => void }) {
   const [action_, setAction_] = useState('')
   const [lists, setLists] = useState<string[]>([])
+
+  useEffect(() => {
+    onConfig({ action: action_, lists })
+  }, [action_, lists])
 
   return (
     <div className="action-panel-section">
@@ -606,11 +658,15 @@ function ListUpdateBody({ isPet }: { isPet: boolean }) {
   )
 }
 
-function CreateTaskBody() {
+function CreateTaskBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [priority, setPriority] = useState('')
   const [assignee, setAssignee] = useState('')
   const [dueVal, setDueVal] = useState(3)
   const [dueUnit, setDueUnit] = useState('Days')
+
+  useEffect(() => {
+    onConfig({ priority, assignee, dueVal, dueUnit })
+  }, [priority, assignee, dueVal, dueUnit])
 
   return (
     <>
@@ -649,10 +705,14 @@ function CreateTaskBody() {
   )
 }
 
-function AssignUserBody() {
+function AssignUserBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [mode, setMode] = useState('')
   const [user, setUser] = useState('')
   const [pool, setPool] = useState<string[]>([])
+
+  useEffect(() => {
+    onConfig({ mode, user, pool })
+  }, [mode, user, pool])
 
   return (
     <div className="action-panel-section">
@@ -675,8 +735,12 @@ function AssignUserBody() {
   )
 }
 
-function DeleteBody({ isPet }: { isPet: boolean }) {
+function DeleteBody({ isPet, onConfig }: { isPet: boolean; onConfig: (c: Record<string, any>) => void }) {
   const [confirmed, setConfirmed] = useState(false)
+
+  useEffect(() => {
+    onConfig({})
+  }, [])
 
   return (
     <div className="action-panel-section">
@@ -699,8 +763,12 @@ function DeleteBody({ isPet }: { isPet: boolean }) {
   )
 }
 
-function BlocklistBody({ isPet }: { isPet: boolean }) {
+function BlocklistBody({ isPet, onConfig }: { isPet: boolean; onConfig: (c: Record<string, any>) => void }) {
   const [reason, setReason] = useState('')
+
+  useEffect(() => {
+    onConfig({ reason })
+  }, [reason])
 
   return (
     <div className="action-panel-section">
@@ -719,10 +787,14 @@ function BlocklistBody({ isPet }: { isPet: boolean }) {
   )
 }
 
-function DealManagementBody() {
+function DealManagementBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [dealAction, setDealAction] = useState('')
   const [pipeline, setPipeline] = useState('')
   const [stage, setStage] = useState('')
+
+  useEffect(() => {
+    onConfig({ dealAction, pipeline, stage })
+  }, [dealAction, pipeline, stage])
   const stages = pipeline ? (MOCK_PIPELINES.find(p => p.label === pipeline)?.stages ?? []) : []
 
   return (
@@ -752,7 +824,11 @@ function DealManagementBody() {
   )
 }
 
-function AssignPetBody() {
+function AssignPetBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
+  useEffect(() => {
+    onConfig({})
+  }, [])
+
   return (
     <div className="action-panel-section">
       <SectionTitle label="Association" />
@@ -765,8 +841,12 @@ function AssignPetBody() {
   )
 }
 
-function StartAutomationBody() {
+function StartAutomationBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [automation, setAutomation] = useState('')
+
+  useEffect(() => {
+    onConfig({ automation })
+  }, [automation])
 
   return (
     <div className="action-panel-section">
@@ -784,8 +864,12 @@ function StartAutomationBody() {
   )
 }
 
-function GoToStepBody() {
+function GoToStepBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [step, setStep] = useState('')
+
+  useEffect(() => {
+    onConfig({ step })
+  }, [step])
   const STEPS = ['Step 1 — Send an email', 'Step 2 — Time delay', 'Step 3 — Conditional split']
 
   return (
@@ -800,9 +884,13 @@ function GoToStepBody() {
   )
 }
 
-function WalletBody({ actionId }: { actionId: string }) {
+function WalletBody({ actionId, onConfig }: { actionId: string; onConfig: (c: Record<string, any>) => void }) {
   const [campaign, setCampaign] = useState('')
   const [notif, setNotif] = useState('')
+
+  useEffect(() => {
+    onConfig({ campaign, notif })
+  }, [campaign, notif])
   const showCampaign = actionId !== 'sendWalletNotification'
   const showNotif = actionId !== 'moveToWalletCampaign'
 
@@ -825,9 +913,13 @@ function WalletBody({ actionId }: { actionId: string }) {
   )
 }
 
-function UpdateCompanyBody() {
+function UpdateCompanyBody({ onConfig }: { onConfig: (c: Record<string, any>) => void }) {
   const [attr, setAttr] = useState('')
   const [op, setOp] = useState('')
+
+  useEffect(() => {
+    onConfig({ attr, op })
+  }, [attr, op])
 
   return (
     <div className="action-panel-section">
@@ -876,32 +968,32 @@ function HeaderIcon({ actionId, iconColor, iconBg }: { actionId: string; iconCol
 
 // ─── Router ──────────────────────────────────────────────────────────────────
 
-function ActionBody({ action }: { action: ActionNode }) {
+function ActionBody({ action, onConfig }: { action: ActionNode; onConfig: (c: Record<string, any>) => void }) {
   const { actionId } = action
-  if (actionId === 'sendEmail') return <SendEmailBody />
-  if (actionId === 'sendSms') return <SendSmsBody />
-  if (actionId === 'sendPushNotification') return <SendPushBody />
-  if (actionId === 'sendWhatsapp') return <SendWhatsAppBody />
-  if (actionId === 'timeDelay') return <TimeDelayBody />
-  if (actionId === 'waitUntilEvent') return <WaitUntilEventBody />
-  if (actionId === 'conditionalSplit') return <ConditionalSplitBody />
-  if (actionId === 'percentageSplit') return <PercentageSplitBody />
-  if (actionId === 'updateContactAttribute') return <UpdateAttributeBody isPet={false} />
-  if (actionId === 'updatePetAttribute') return <UpdateAttributeBody isPet={true} />
-  if (actionId === 'contactListUpdate') return <ListUpdateBody isPet={false} />
-  if (actionId === 'petListUpdate') return <ListUpdateBody isPet={true} />
-  if (actionId === 'createTask') return <CreateTaskBody />
-  if (actionId === 'assignUserToContact') return <AssignUserBody />
-  if (actionId === 'assignPetToContact') return <AssignPetBody />
-  if (actionId === 'deleteContact') return <DeleteBody isPet={false} />
-  if (actionId === 'deletePet') return <DeleteBody isPet={true} />
-  if (actionId === 'blocklistContact') return <BlocklistBody isPet={false} />
-  if (actionId === 'blocklistPet') return <BlocklistBody isPet={true} />
-  if (actionId === 'dealManagement') return <DealManagementBody />
-  if (actionId === 'startAnotherAutomation') return <StartAutomationBody />
-  if (actionId === 'goToAnotherStep') return <GoToStepBody />
-  if (actionId === 'moveToWalletCampaign' || actionId === 'sendWalletNotification' || actionId === 'moveToWalletAndNotify') return <WalletBody actionId={actionId} />
-  if (actionId === 'updateCompanyAttribute') return <UpdateCompanyBody />
+  if (actionId === 'sendEmail') return <SendEmailBody onConfig={onConfig} />
+  if (actionId === 'sendSms') return <SendSmsBody onConfig={onConfig} />
+  if (actionId === 'sendPushNotification') return <SendPushBody onConfig={onConfig} />
+  if (actionId === 'sendWhatsapp') return <SendWhatsAppBody onConfig={onConfig} />
+  if (actionId === 'timeDelay') return <TimeDelayBody onConfig={onConfig} />
+  if (actionId === 'waitUntilEvent') return <WaitUntilEventBody onConfig={onConfig} />
+  if (actionId === 'conditionalSplit') return <ConditionalSplitBody onConfig={onConfig} />
+  if (actionId === 'percentageSplit') return <PercentageSplitBody onConfig={onConfig} />
+  if (actionId === 'updateContactAttribute') return <UpdateAttributeBody isPet={false} onConfig={onConfig} />
+  if (actionId === 'updatePetAttribute') return <UpdateAttributeBody isPet={true} onConfig={onConfig} />
+  if (actionId === 'contactListUpdate') return <ListUpdateBody isPet={false} onConfig={onConfig} />
+  if (actionId === 'petListUpdate') return <ListUpdateBody isPet={true} onConfig={onConfig} />
+  if (actionId === 'createTask') return <CreateTaskBody onConfig={onConfig} />
+  if (actionId === 'assignUserToContact') return <AssignUserBody onConfig={onConfig} />
+  if (actionId === 'assignPetToContact') return <AssignPetBody onConfig={onConfig} />
+  if (actionId === 'deleteContact') return <DeleteBody isPet={false} onConfig={onConfig} />
+  if (actionId === 'deletePet') return <DeleteBody isPet={true} onConfig={onConfig} />
+  if (actionId === 'blocklistContact') return <BlocklistBody isPet={false} onConfig={onConfig} />
+  if (actionId === 'blocklistPet') return <BlocklistBody isPet={true} onConfig={onConfig} />
+  if (actionId === 'dealManagement') return <DealManagementBody onConfig={onConfig} />
+  if (actionId === 'startAnotherAutomation') return <StartAutomationBody onConfig={onConfig} />
+  if (actionId === 'goToAnotherStep') return <GoToStepBody onConfig={onConfig} />
+  if (actionId === 'moveToWalletCampaign' || actionId === 'sendWalletNotification' || actionId === 'moveToWalletAndNotify') return <WalletBody actionId={actionId} onConfig={onConfig} />
+  if (actionId === 'updateCompanyAttribute') return <UpdateCompanyBody onConfig={onConfig} />
   return (
     <div className="action-panel-section">
       <SectionTitle label="Configuration" />
@@ -918,11 +1010,14 @@ function ActionBody({ action }: { action: ActionNode }) {
 
 interface Props {
   action: ActionNode
-  onSave: (id: string) => void
+  onSave: (id: string, config: Record<string, any>) => void
   onCancel: (id: string) => void
 }
 
 export default function ConfigureActionPanel({ action, onSave, onCancel }: Props) {
+  const configRef = useRef<Record<string, any>>({})
+  const handleConfig = (c: Record<string, any>) => { configRef.current = c }
+
   return (
     <div className="side-panel">
       <div className="panel-header">
@@ -942,12 +1037,12 @@ export default function ConfigureActionPanel({ action, onSave, onCancel }: Props
       </div>
 
       <div className="panel-body" style={{ padding: 0 }}>
-        <ActionBody action={action} />
+        <ActionBody action={action} onConfig={handleConfig} />
       </div>
 
       <div className="panel-footer">
         <NaosButton variant={VARIANTS.TERTIARY} color={COLORS.PRIMARY} size="medium" label="Cancel" onClick={() => onCancel(action.id)} />
-        <NaosButton variant={VARIANTS.PRIMARY} color={COLORS.PRIMARY} size="medium" label="Save" onClick={() => onSave(action.id)} />
+        <NaosButton variant={VARIANTS.PRIMARY} color={COLORS.PRIMARY} size="medium" label="Save" onClick={() => onSave(action.id, configRef.current)} />
       </div>
     </div>
   )

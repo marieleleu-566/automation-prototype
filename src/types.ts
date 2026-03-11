@@ -26,6 +26,7 @@ export interface ActionNode {
   iconColor: string
   iconBg: string
   configured: boolean
+  config?: Record<string, any>
 }
 
 export interface AppState {
