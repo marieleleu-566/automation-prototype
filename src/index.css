@@ -348,7 +348,7 @@ body {
 .action-node.warning { border-color: #f59e0b; }
 .action-node-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; border-bottom: 1px solid #f0f0f0;
+  padding: 8px 12px;
 }
 .action-node-type {
   display: flex; align-items: center; gap: 6px;
