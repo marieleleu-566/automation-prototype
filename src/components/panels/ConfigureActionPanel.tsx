@@ -369,7 +369,18 @@ function SendPushBody({ onConfig }: { onConfig: (c: Record<string, any>) => void
         <TextInput value={title} onChange={setTitle} placeholder="New message from VetinParis" />
         <div style={{ marginTop: 16 }}>
           <FieldLabel label="Message" required />
-          <TextArea placeholder="Your pet's appointment is confirmed for tomorrow at 10:00 AM." rows={3} />
+          <div style={{ border: '1px solid #e3e3e3', borderRadius: 8, overflow: 'hidden' }}>
+            <textarea
+              style={{
+                width: '100%', border: 'none', outline: 'none', padding: '10px 16px',
+                fontSize: 14, color: '#1b1b1b', resize: 'vertical', fontFamily: 'inherit',
+                boxSizing: 'border-box', minHeight: 3 * 24 + 20,
+              }}
+              placeholder="Your pet's appointment is confirmed for tomorrow at 10:00 AM."
+              value={body}
+              onChange={e => setBody(e.target.value)}
+            />
+          </div>
         </div>
         <div style={{ marginTop: 16 }}>
           <FieldLabel label="URL / deep link" />
