@@ -575,7 +575,7 @@ export default function Canvas({
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
-  const [btnPos, setBtnPos] = useState<'right' | 'left' | 'top' | 'below' | 'inside' | 'node-menu' | 'fork' | 'container'>('container')
+  const [btnPos] = useState<'right' | 'left' | 'top' | 'below' | 'inside' | 'node-menu' | 'fork' | 'container'>('container')
   const lastMouse = useRef({ x: 0, y: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
   const hasTriggers = triggers.length > 0
