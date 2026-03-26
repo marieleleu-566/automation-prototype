@@ -38,6 +38,34 @@ function matchesObject(name: string, obj: string): boolean {
   return name.toLowerCase().includes(obj.toLowerCase())
 }
 
+const PET_ACTION_IDS = new Set(['petListUpdate', 'updatePetAttribute', 'deletePet', 'blocklistPet', 'assignPetToContact'])
+const CONTACT_ACTION_IDS = new Set(['contactListUpdate', 'updateContactAttribute', 'deleteContact', 'blocklistContact', 'assignUserToContact'])
+const COMPANY_ACTION_IDS = new Set(['updateCompanyAttribute'])
+
+function getActionObject(id: string): 'pet' | 'contact' | 'company' | null {
+  if (PET_ACTION_IDS.has(id)) return 'pet'
+  if (CONTACT_ACTION_IDS.has(id)) return 'contact'
+  if (COMPANY_ACTION_IDS.has(id)) return 'company'
+  return null
+}
+
+function ActionBadge({ object }: { object: 'pet' | 'contact' | 'company' }) {
+  const styles: Record<string, React.CSSProperties> = {
+    pet: { background: '#FFF1F2', color: '#F43F5E' },
+    contact: { background: '#EEF2FF', color: '#4F46E5' },
+    company: { background: '#F0FDF4', color: '#16A34A' },
+  }
+  const labels = { pet: 'Pet', contact: 'Contact', company: 'Company' }
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 500, padding: '1px 6px', borderRadius: 20,
+      flexShrink: 0, ...styles[object],
+    }}>
+      {labels[object]}
+    </span>
+  )
+}
+
 interface Props {
   onSelect: (def: ActionDef) => void
   onClose: () => void
@@ -95,7 +123,8 @@ function ActionCard({ def, onSelect, onDragStart }: {
       }}>
         <ActionIcon id={def.id} color={def.iconColor} />
       </div>
-      <span className="action-item-name">{def.name}</span>
+      <span className="action-item-name" style={{ flex: 1 }}>{def.name}</span>
+      {getActionObject(def.id) && <ActionBadge object={getActionObject(def.id)!} />}
       <div className="action-item-drag"><GripVertical size={14} /></div>
     </div>
   )
@@ -260,7 +289,7 @@ export default function SelectActionPanel({ onSelect, onClose }: Props) {
                 )}
                 {filteredCategories.map(cat => (
                   <div key={cat.name}>
-                    <div className="action-subcategory">{cat.name}</div>
+                    <div className="list-section-title">{cat.name}</div>
                     {cat.actions.map(def => (
                       <ActionCard key={def.id} def={def} onSelect={onSelect} onDragStart={handleDragStart} />
                     ))}

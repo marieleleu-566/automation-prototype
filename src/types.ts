@@ -6,6 +6,14 @@ export type PanelType =
   | 'overview'
   | null
 
+export interface FilterRule {
+  id: string
+  attributeId: string
+  attributeLabel: string
+  operator: string
+  value: string
+}
+
 export interface TriggerNode {
   id: string
   triggerId: string
@@ -16,6 +24,7 @@ export interface TriggerNode {
     membershipType?: string
     selectedLists?: string[]
     filters?: string[]
+    filterRules?: FilterRule[]
   }
 }
 
@@ -35,4 +44,5 @@ export interface AppState {
   actions: ActionNode[]
   editingTriggerId: string | null
   editingActionId: string | null
+  objectType: 'pet' | 'contact' | null
 }

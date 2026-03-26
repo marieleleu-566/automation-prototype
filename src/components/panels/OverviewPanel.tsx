@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type React from 'react'
 import CheckCircle from '@dtsl/icons/dist/icons/react/CheckCircle'
 import AlertTriangle from '@dtsl/icons/dist/icons/react/AlertTriangle'
 import Xcircle from '@dtsl/icons/dist/icons/react/Xcircle'
@@ -22,7 +23,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
       onClick={onChange}
       style={{
         width: 40, height: 22, borderRadius: 100, border: 'none', cursor: 'pointer',
-        background: on ? '#1b1b1b' : 'var(--color-text-muted)',
+        background: on ? '#6358DE' : 'var(--color-text-muted)',
         position: 'relative', flexShrink: 0,
         transition: 'background 0.2s',
       }}
@@ -34,6 +35,62 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
         boxShadow: '0 1px 3px rgba(0,0,0,0.18)',
       }} />
     </button>
+  )
+}
+
+function buildSummary(triggers: TriggerNode[], actions: ActionNode[]): React.ReactNode {
+  if (triggers.length === 0) return <span>No triggers configured yet.</span>
+
+  // Build trigger phrase
+  const triggerPhrases = triggers.map((t, i) => {
+    let phrase: React.ReactNode
+
+    if (t.config.membershipType) {
+      const verb = t.config.membershipType === 'added' ? 'joins' : 'leaves'
+      const lists = t.config.selectedLists?.length
+        ? <strong>{t.config.selectedLists.join(' or ')}</strong>
+        : 'a list'
+      const filterRules = t.config.filterRules ?? []
+      const filterSummary = filterRules.length > 0
+        ? <> — filtered by {filterRules.map((r, fi) => (
+            <span key={r.id}>{fi > 0 ? ', ' : ''}<strong>{r.attributeLabel} {r.operator}{r.value ? ` ${r.value}` : ''}</strong></span>
+          ))}</>
+        : null
+      phrase = <>a pet {verb} {lists}{filterSummary}</>
+    } else {
+      phrase = <strong>{t.name}</strong>
+    }
+
+    return <span key={t.id}>{i > 0 ? ', or ' : ''}{phrase}</span>
+  })
+
+  // Build action phrase
+  const emailAction = actions.find(a => a.actionId === 'sendEmail')
+  const otherActions = actions.filter(a => a.actionId !== 'sendEmail')
+
+  const actionPhrases: React.ReactNode[] = []
+
+  if (emailAction) {
+    const subject = emailAction.config?.subject
+    const sender = emailAction.config?.sender
+    actionPhrases.push(
+      <span key={emailAction.id}>
+        their owner automatically receives an email
+        {subject ? <> — "<strong>{subject}</strong>"</> : null}
+        {sender ? <> sent from <strong>{sender}</strong></> : null}
+      </span>
+    )
+  }
+
+  otherActions.forEach(a => {
+    actionPhrases.push(<span key={a.id}><strong>{a.name}</strong> is triggered</span>)
+  })
+
+  return (
+    <>
+      When {triggerPhrases}
+      {actionPhrases.length > 0 && <>, {actionPhrases.map((p, i) => <span key={i}>{i > 0 ? ', then ' : ''}{p}</span>)}</>}.
+    </>
   )
 }
 
@@ -98,8 +155,7 @@ export default function OverviewPanel({ triggers, actions, onContinueBuilding, o
           <div className="overview-card">
             <div className="overview-card-title">What this automation does</div>
             <p className="overview-card-text">
-              When a <strong>young dog</strong> (under 2 yrs, non-Pit Bull) is added as a <strong>new client</strong>,
-              their owner automatically receives a <strong>welcome email</strong> from VetinParis.
+              {buildSummary(triggers, actions)}
             </p>
           </div>
 

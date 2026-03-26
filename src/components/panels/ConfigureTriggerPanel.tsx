@@ -5,9 +5,10 @@ import ChevronDown from '@dtsl/icons/dist/icons/react/ChevronDown'
 import ChevronUp from '@dtsl/icons/dist/icons/react/ChevronUp'
 import ChevronLeft from '@dtsl/icons/dist/icons/react/ChevronLeft'
 import List from '@dtsl/icons/dist/icons/react/List'
-import Users from '@dtsl/icons/dist/icons/react/Users'
-import type { TriggerNode } from '../../types'
+import Dog from '@dtsl/icons/dist/icons/react/Dog'
+import type { TriggerNode, FilterRule } from '../../types'
 import { AVAILABLE_LISTS, MEMBERSHIP_TYPES } from '../../data'
+import FilterPickerModal from './FilterPickerModal'
 
 interface Props {
   trigger: TriggerNode
@@ -15,26 +16,16 @@ interface Props {
   onCancel: (id: string) => void
 }
 
-const MOCK_FILTERS = [
-  'Pet age < 2 years',
-  'Pet type is Dog',
-  'Pet breed is not Pit Bull',
-  'Pet vaccination is Up to date',
-  'Pet weight > 5 kg',
-]
-
-function PetFiltersBody({ filters, onFiltersChange }: { filters: string[]; onFiltersChange: (f: string[]) => void }) {
-  const addNext = () => {
-    const next = MOCK_FILTERS.find(f => !filters.includes(f))
-    if (next) onFiltersChange([...filters, next])
-  }
-  const remove = (f: string) => onFiltersChange(filters.filter(x => x !== f))
+function PetFiltersBody({ filterRules, onFilterRulesChange }: { filterRules: FilterRule[]; onFilterRulesChange: (f: FilterRule[]) => void }) {
+  const [showModal, setShowModal] = useState(false)
+  const remove = (id: string) => onFilterRulesChange(filterRules.filter(r => r.id !== id))
 
   return (
     <div className="panel-body" style={{ padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#696969', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filters</div>
       <div style={{
-        border: '1px solid var(--color-border)',
-        borderRadius: 12,
+        border: '1px solid #e3e3e3',
+        borderRadius: 16,
         padding: 16,
         display: 'flex',
         flexDirection: 'column',
@@ -42,46 +33,60 @@ function PetFiltersBody({ filters, onFiltersChange }: { filters: string[]; onFil
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Users size={16} style={{ color: '#1b1b1b' }} />
-            <span style={{ fontSize: 16, fontWeight: 600, color: '#1b1b1b' }}>Pet filters</span>
+            <Dog size={16} style={{ color: '#1b1b1b' }} />
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#1b1b1b' }}>Pet filters</span>
           </div>
-          <p style={{ fontSize: 14, color: '#696969', margin: 0, lineHeight: '20px' }}>
-            Define the pets entering your automation.
+          <p style={{ fontSize: 13, color: '#696969', margin: 0, lineHeight: '19px' }}>
+            Refine the pets and contacts that enter the automation, based on pet information.
           </p>
         </div>
 
-        {filters.length > 0 && (
+        {filterRules.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {filters.map(f => (
-              <div key={f} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '6px 10px', background: 'var(--color-surface-subtle)', borderRadius: 6,
-                fontSize: 13, color: '#1b1b1b', fontWeight: 500,
-              }}>
-                {f}
-                <button onClick={() => remove(f)} style={{
-                  border: 'none', background: 'transparent', cursor: 'pointer',
-                  color: '#696969', display: 'flex', padding: 0, marginLeft: 8,
+            {filterRules.map((rule, i) => (
+              <div key={rule.id}>
+                {i > 0 && (
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', padding: '2px 0 4px', textTransform: 'uppercase' }}>AND</div>
+                )}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '7px 10px', background: '#f5f5f5', borderRadius: 8,
+                  fontSize: 13, color: '#1b1b1b',
                 }}>
-                  <X size={12} />
-                </button>
+                  <span>
+                    <strong>{rule.attributeLabel}</strong>{' '}
+                    <span style={{ color: '#696969' }}>{rule.operator}</span>
+                    {rule.value && <> <strong>{rule.value}</strong></>}
+                  </span>
+                  <button onClick={() => remove(rule.id)} style={{
+                    border: 'none', background: 'transparent', cursor: 'pointer',
+                    color: '#9ca3af', display: 'flex', padding: 0, marginLeft: 8,
+                  }}>
+                    <X size={12} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        {filters.length < MOCK_FILTERS.length && (
-          <button onClick={addNext} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '7px 16px', border: '1px solid #cfcfcf', borderRadius: 8,
-            background: '#fff', fontSize: 14, fontWeight: 600, color: '#1b1b1b',
-            cursor: 'pointer', boxShadow: '0 1px 2px rgba(27,27,27,0.08)',
-            alignSelf: 'flex-start',
-          }}>
-            Add filter
-          </button>
-        )}
+        <button onClick={() => setShowModal(true)} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '6px 14px', border: '1px solid #cfcfcf', borderRadius: 8,
+          background: '#fff', fontSize: 13, fontWeight: 600, color: '#1b1b1b',
+          cursor: 'pointer', boxShadow: '0 1px 2px rgba(27,27,27,0.06)',
+          alignSelf: 'flex-start',
+        }}>
+          Add filter
+        </button>
       </div>
+
+      {showModal && (
+        <FilterPickerModal
+          onAdd={rules => onFilterRulesChange([...filterRules, ...rules])}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   )
 }
@@ -89,7 +94,7 @@ function PetFiltersBody({ filters, onFiltersChange }: { filters: string[]; onFil
 export default function ConfigureTriggerPanel({ trigger, onSave, onCancel }: Props) {
   const [membershipType, setMembershipType] = useState(trigger.config.membershipType ?? '')
   const [selectedLists, setSelectedLists] = useState<string[]>(trigger.config.selectedLists ?? [])
-  const [filters, setFilters] = useState<string[]>(trigger.config.filters ?? [])
+  const [filterRules, setFilterRules] = useState<FilterRule[]>(trigger.config.filterRules ?? [])
   const [membershipOpen, setMembershipOpen] = useState(false)
   const [listOpen, setListOpen] = useState(false)
 
@@ -100,13 +105,16 @@ export default function ConfigureTriggerPanel({ trigger, onSave, onCancel }: Pro
     setSelectedLists(prev => prev.includes(name) ? prev.filter(l => l !== name) : [...prev, name])
 
   const handleSave = () => {
+    const filterStrings = filterRules.map(r =>
+      r.value ? `${r.attributeLabel} ${r.operator} ${r.value}` : `${r.attributeLabel} ${r.operator}`
+    )
     if (isPetFiltered) {
-      onSave(trigger.id, { filters }, trigger.name)
+      onSave(trigger.id, { filterRules, filters: filterStrings }, trigger.name)
     } else {
       const desc = selectedLists.length > 0
         ? `Pet added to list ${selectedLists.join(' & ')}`
         : trigger.name
-      onSave(trigger.id, { membershipType, selectedLists }, desc)
+      onSave(trigger.id, { membershipType, selectedLists, filterRules, filters: filterStrings }, desc)
     }
   }
 
@@ -147,7 +155,7 @@ export default function ConfigureTriggerPanel({ trigger, onSave, onCancel }: Pro
       )}
 
       {isPetFiltered ? (
-        <PetFiltersBody filters={filters} onFiltersChange={setFilters} />
+        <PetFiltersBody filterRules={filterRules} onFilterRulesChange={setFilterRules} />
       ) : (
         <div className="panel-body">
           {/* Membership type select */}

@@ -43,6 +43,53 @@ interface CanvasProps {
 
 const ARROW_TOTAL_H = 96
 
+const FORK_W = 280
+const FORK_H = 56
+
+function ForkOptions({ onAddTrigger, onAddStep }: { onAddTrigger: () => void; onAddStep: () => void }) {
+  const [hoverL, setHoverL] = useState(false)
+  const [hoverR, setHoverR] = useState(false)
+  const lx = 65, rx = FORK_W - 65, cx = FORK_W / 2, fy = 28
+  const arrowSize = 7
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <svg width={FORK_W} height={FORK_H} viewBox={`0 0 ${FORK_W} ${FORK_H}`} fill="none" style={{ display: 'block' }}>
+        {/* stem */}
+        <line x1={cx} y1={0} x2={cx} y2={16} stroke="#9ca3af" strokeWidth="1.5" />
+        {/* left branch */}
+        <path d={`M${cx},16 C${cx},${fy} ${lx},${fy} ${lx},${FORK_H}`} stroke={hoverL ? ARROW_HOVER : '#9ca3af'} strokeWidth="1.5" fill="none" style={{ transition: 'stroke 0.15s' }} />
+        <polyline points={`${lx - arrowSize + 2},${FORK_H - arrowSize} ${lx},${FORK_H} ${lx + arrowSize - 2},${FORK_H - arrowSize}`} stroke={hoverL ? ARROW_HOVER : '#9ca3af'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.15s' }} />
+        {/* right branch */}
+        <path d={`M${cx},16 C${cx},${fy} ${rx},${fy} ${rx},${FORK_H}`} stroke={hoverR ? ARROW_HOVER : '#9ca3af'} strokeWidth="1.5" fill="none" style={{ transition: 'stroke 0.15s' }} />
+        <polyline points={`${rx - arrowSize + 2},${FORK_H - arrowSize} ${rx},${FORK_H} ${rx + arrowSize - 2},${FORK_H - arrowSize}`} stroke={hoverR ? ARROW_HOVER : '#9ca3af'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.15s' }} />
+      </svg>
+      <div style={{ display: 'flex', gap: FORK_W - lx * 2 - 100 }}>
+        <button
+          className="add-trigger-btn"
+          onClick={onAddTrigger}
+          onMouseEnter={() => setHoverL(true)}
+          onMouseLeave={() => setHoverL(false)}
+          style={{ width: lx * 2 - 10 }}
+        >
+          <Zap size={13} style={{ color: '#696969' }} />
+          Add a trigger
+        </button>
+        <button
+          className="add-trigger-btn"
+          onClick={onAddStep}
+          onMouseEnter={() => setHoverR(true)}
+          onMouseLeave={() => setHoverR(false)}
+          style={{ width: lx * 2 - 10 }}
+        >
+          <Plus size={13} style={{ color: '#696969' }} />
+          Add a step
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function ArrowSVG({ color }: { color: string }) {
   return (
     <svg width="32" height={ARROW_TOTAL_H} viewBox={`0 0 32 ${ARROW_TOTAL_H}`} fill="none" style={{ display: 'block' }}>
@@ -528,6 +575,7 @@ export default function Canvas({
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
+  const [btnPos, setBtnPos] = useState<'right' | 'left' | 'top' | 'below' | 'inside' | 'node-menu' | 'fork' | 'container'>('container')
   const lastMouse = useRef({ x: 0, y: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
   const hasTriggers = triggers.length > 0
@@ -640,27 +688,128 @@ export default function Canvas({
           </div>
         ) : (
           <>
-            <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+            {btnPos === 'container' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div className={`trigger-node ${!hasTriggers || triggers.some(t => !t.configured) ? 'warning' : ''}`} style={{ width: 280, padding: 0, overflow: 'hidden', cursor: 'default' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px 8px', borderBottom: '1px solid #f0f0f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: 4, background: TRIGGER_ICON_BG, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Zap size={11} style={{ color: TRIGGER_ICON_COLOR }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: '#696969' }}>Automation triggered when</span>
+                    </div>
+                    {hasTriggers && (
+                      <span className={`trigger-object-badge trigger-object-badge--${triggers[0].name.toLowerCase().includes('pet') ? 'pet' : 'contact'}`} style={{ fontSize: 10 }}>
+                        {triggers[0].name.toLowerCase().includes('pet') ? 'Pet' : 'Contact'}
+                      </span>
+                    )}
+                  </div>
+
+                  {!hasTriggers && (
+                    <div
+                      onClick={onPickTrigger}
+                      style={{ padding: '10px 12px', fontSize: 13, color: '#9ca3af', fontStyle: 'italic', cursor: 'pointer' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#fafafa')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      No trigger — click to add one
+                    </div>
+                  )}
+
+                  {triggers.map((trigger, i) => (
+                    <div key={trigger.id}>
+                      {i > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px' }}>
+                          <div style={{ flex: 1, height: 1, background: '#f0f0f0' }} />
+                          <span style={{ fontSize: 10, fontWeight: 700, color: '#c0bfbf', letterSpacing: '0.05em' }}>OR</span>
+                          <div style={{ flex: 1, height: 1, background: '#f0f0f0' }} />
+                        </div>
+                      )}
+                      <div
+                        onClick={() => onClickTrigger(trigger.id)}
+                        style={{
+                          padding: '8px 12px', cursor: 'pointer', transition: 'background 0.1s',
+                          background: editingTriggerId === trigger.id ? 'rgba(99,88,222,0.05)' : 'transparent',
+                          borderLeft: editingTriggerId === trigger.id ? '2px solid #6358DE' : '2px solid transparent',
+                        }}
+                        onMouseEnter={e => { if (editingTriggerId !== trigger.id) e.currentTarget.style.background = '#fafafa' }}
+                        onMouseLeave={e => { if (editingTriggerId !== trigger.id) e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#1b1b1b', lineHeight: 1.3 }}>
+                              {trigger.configured
+                                ? trigger.config.membershipType
+                                  ? trigger.config.membershipType === 'added' ? 'Pet added to a list' : 'Pet removed from a list'
+                                  : trigger.name
+                                : trigger.name}
+                            </span>
+                          </div>
+                          <NodeMenu items={triggerMenuItems(() => {
+                            if (triggers.length === 1 && actions.length > 0) setPendingDeleteTriggerId(trigger.id)
+                            else onDeleteTrigger(trigger.id)
+                          })} />
+                        </div>
+                        {trigger.configured && (
+                          <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {trigger.config.selectedLists && trigger.config.selectedLists.length > 0 && (
+                              <span style={{ fontSize: 11, color: '#696969' }}>
+                                {trigger.config.selectedLists.join(', ')}
+                              </span>
+                            )}
+                            {trigger.config.filterRules && trigger.config.filterRules.length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {trigger.config.filterRules.map((r, i) => (
+                                  <span key={r.id} style={{ fontSize: 11, color: '#696969' }}>
+                                    {i > 0 && <span style={{ fontWeight: 600, color: '#9ca3af' }}>AND </span>}
+                                    {r.attributeLabel} {r.operator}{r.value ? ` ${r.value}` : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {!trigger.configured && (
+                          <div className="trigger-node-warning" style={{ marginTop: 6 }}>
+                            <AlertTriangle size={11} />
+                            Verify and save this trigger.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {hasTriggers && (
+                    <div
+                      onClick={onAddTrigger}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderTop: '1px solid #f0f0f0', cursor: 'pointer', color: '#9ca3af', fontSize: 12, transition: 'background 0.1s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#fafafa'; (e.currentTarget.style.color = '#6358DE') }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; (e.currentTarget.style.color = '#9ca3af') }}
+                    >
+                      <Plus size={12} />
+                      Add a trigger
+                    </div>
+                  )}
+                </div>
+                <ArrowConnector onClick={onClickDropZone} isDragging={isDragging} onDrop={handleArrowDrop} insertAfterIndex={-1} />
+              </div>
+            ) : null}
+
+            <div style={{ position: 'relative', display: btnPos === 'container' ? 'none' : 'flex', justifyContent: 'center' }}>
               <div className="triggers-row" style={{ gap: NODE_GAP }}>
                 {!hasTriggers && (
                   <div style={{ display: 'flex' }}>
                     <div className="trigger-node ghost-trigger" onClick={onPickTrigger}>
                       <div className="trigger-node-top">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{
-                            width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-                            background: '#f3f4f6',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                          }}>
+                          <div style={{ width: 20, height: 20, borderRadius: 4, flexShrink: 0, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Zap size={11} style={{ color: '#d1d5db' }} />
                           </div>
                           <div className="trigger-node-badge" style={{ background: '#f3f4f6', color: '#9ca3af' }}>Trigger</div>
                         </div>
                       </div>
                       <span className="trigger-node-label" style={{ color: '#d1d5db' }}>Automation triggered when</span>
-                      <div style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic', marginTop: 4 }}>
-                        No trigger — click to add one
-                      </div>
+                      <div style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic', marginTop: 4 }}>No trigger — click to add one</div>
                     </div>
                   </div>
                 )}
@@ -672,29 +821,34 @@ export default function Canvas({
                     >
                       <div className="trigger-node-top">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{
-                            width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-                            background: TRIGGER_ICON_BG,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                          }}>
+                          <div style={{ width: 20, height: 20, borderRadius: 4, flexShrink: 0, background: TRIGGER_ICON_BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <List size={11} style={{ color: TRIGGER_ICON_COLOR }} />
                           </div>
                           <div className="trigger-node-badge">
                             {trigger.name.toLowerCase().includes('pet') ? 'Pet' : 'Contact'}
                           </div>
                         </div>
-                        <NodeMenu items={triggerMenuItems(() => {
-                          if (triggers.length === 1 && actions.length > 0) {
-                            setPendingDeleteTriggerId(trigger.id)
-                          } else {
-                            onDeleteTrigger(trigger.id)
-                          }
-                        })} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {hasTriggers && btnPos === 'node-menu' && (
+                            <button
+                              onClick={e => { e.stopPropagation(); onAddTrigger() }}
+                              title="Add a trigger"
+                              style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#696969' }}
+                            >
+                              <Plus size={11} />
+                            </button>
+                          )}
+                          <NodeMenu items={triggerMenuItems(() => {
+                            if (triggers.length === 1 && actions.length > 0) {
+                              setPendingDeleteTriggerId(trigger.id)
+                            } else {
+                              onDeleteTrigger(trigger.id)
+                            }
+                          })} />
+                        </div>
                       </div>
                       <span className="trigger-node-label">Automation triggered when</span>
-                      <div className="trigger-node-title">
-                        {trigger.configured ? getTriggerTitle(trigger) : trigger.name}
-                      </div>
+                      <div className="trigger-node-title">{trigger.configured ? getTriggerTitle(trigger) : trigger.name}</div>
                       {trigger.configured && trigger.config.filters && trigger.config.filters.length > 0 && (
                         <p style={{ fontSize: 12, color: '#1b1b1b', margin: '2px 0 0', lineHeight: '16px' }}>
                           {trigger.config.filters.map((f, i) => (
@@ -711,23 +865,74 @@ export default function Canvas({
                           Verify and save this trigger.
                         </div>
                       )}
+                      {/* Inside node: bottom row */}
+                      {hasTriggers && btnPos === 'inside' && (
+                        <div
+                          onClick={e => { e.stopPropagation(); onAddTrigger() }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 10, paddingTop: 8, borderTop: '1px solid #f0f0f0', color: '#9ca3af', cursor: 'pointer', fontSize: 12 }}
+                          onMouseEnter={e => (e.currentTarget.style.color = '#6358DE')}
+                          onMouseLeave={e => (e.currentTarget.style.color = '#9ca3af')}
+                        >
+                          <Plus size={11} />
+                          Add a trigger
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-              <div style={{ position: 'absolute', left: '100%', top: 40, display: 'flex', alignItems: 'center', marginLeft: 8, whiteSpace: 'nowrap' }}>
-                <div style={{ width: 24, height: 1.5, background: '#e5e7eb' }} />
+
+              {/* Right side button */}
+              {hasTriggers && btnPos === 'right' && (
+                <div style={{ position: 'absolute', left: '100%', top: 40, display: 'flex', alignItems: 'center', marginLeft: 8, whiteSpace: 'nowrap' }}>
+                  <div style={{ width: 24, height: 1.5, background: '#e5e7eb' }} />
+                  <button className="add-trigger-btn" onClick={onAddTrigger}>
+                    <Zap size={13} style={{ color: '#696969' }} />
+                    Add a trigger
+                  </button>
+                </div>
+              )}
+
+              {/* Left side button */}
+              {hasTriggers && btnPos === 'left' && (
+                <div style={{ position: 'absolute', right: '100%', top: 40, display: 'flex', alignItems: 'center', marginRight: 8, whiteSpace: 'nowrap' }}>
+                  <button className="add-trigger-btn" onClick={onAddTrigger}>
+                    <Zap size={13} style={{ color: '#696969' }} />
+                    Add a trigger
+                  </button>
+                  <div style={{ width: 24, height: 1.5, background: '#e5e7eb' }} />
+                </div>
+              )}
+
+              {/* Top button */}
+              {hasTriggers && btnPos === 'top' && (
+                <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, whiteSpace: 'nowrap' }}>
+                  <button className="add-trigger-btn" onClick={onAddTrigger}>
+                    <Zap size={13} style={{ color: '#696969' }} />
+                    Add a trigger
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Below node button */}
+            {hasTriggers && btnPos === 'below' && (
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0 0' }}>
                 <button className="add-trigger-btn" onClick={onAddTrigger}>
-                  <Zap size={13} style={{ color: '#696969' }} />
+                  <Plus size={13} style={{ color: '#696969' }} />
                   Add a trigger
                 </button>
               </div>
-            </div>
+            )}
 
-            {triggers.length > 1 ? (
-              <MergeConnector count={triggers.length} onClick={() => onClickDropZone(-1)} isDragging={isDragging} onDrop={(e) => handleArrowDrop(e, -1)} />
-            ) : (
-              <ArrowConnector onClick={onClickDropZone} isDragging={isDragging} onDrop={handleArrowDrop} insertAfterIndex={-1} />
+            {btnPos !== 'container' && (
+              hasTriggers && btnPos === 'fork' && actions.length === 0 ? (
+                <ForkOptions onAddTrigger={onAddTrigger} onAddStep={() => onClickDropZone(-1)} />
+              ) : triggers.length > 1 ? (
+                <MergeConnector count={triggers.length} onClick={() => onClickDropZone(-1)} isDragging={isDragging} onDrop={(e) => handleArrowDrop(e, -1)} />
+              ) : (
+                <ArrowConnector onClick={onClickDropZone} isDragging={isDragging} onDrop={handleArrowDrop} insertAfterIndex={-1} />
+              )
             )}
 
             {actions.length > 0 ? (
@@ -811,6 +1016,7 @@ export default function Canvas({
         document.body
       )}
 
+
       {/* Zoom controls */}
       <div className="canvas-zoom">
         <button title="Zoom out" onClick={() => setZoom(z => Math.max(0.3, +(z - 0.1).toFixed(2)))}>
@@ -829,10 +1035,20 @@ export default function Canvas({
 }
 
 function getTriggerTitle(trigger: TriggerNode): string {
-  const { selectedLists } = trigger.config
-  if (selectedLists && selectedLists.length > 0) {
-    return `Pet added to list ${selectedLists.join(' & ')}`
+  const { membershipType, selectedLists } = trigger.config
+  const isPet = trigger.triggerId.toLowerCase().startsWith('pet')
+
+  if (trigger.triggerId === 'petListMembership' || trigger.triggerId === 'contactListMembership') {
+    const object = isPet ? 'Pet' : 'Contact'
+    const action = membershipType === 'removed' ? 'removed from' : 'added to'
+    if (selectedLists && selectedLists.length > 0) {
+      return `${object} ${action} ${selectedLists.join(' or ')}`
+    }
+    return `${object} ${action} a list`
   }
-  if (trigger.triggerId === 'contactFiltered') return 'Pet matches custom filters'
+
+  if (trigger.triggerId === 'petFiltered') return 'Pet matches filters'
+  if (trigger.triggerId === 'contactFiltered') return 'Contact matches filters'
+
   return trigger.name
 }

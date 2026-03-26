@@ -8,12 +8,6 @@ import ConfigureTriggerPanel from './components/panels/ConfigureTriggerPanel'
 import SelectActionPanel from './components/panels/SelectActionPanel'
 import ConfigureActionPanel from './components/panels/ConfigureActionPanel'
 import OverviewPanel from './components/panels/OverviewPanel'
-import Power from '@dtsl/icons/dist/icons/react/Power'
-import Play from '@dtsl/icons/dist/icons/react/Play'
-import ChevronDown from '@dtsl/icons/dist/icons/react/ChevronDown'
-import PauseCircle from '@dtsl/icons/dist/icons/react/PauseCircle'
-import XCircle from '@dtsl/icons/dist/icons/react/Xcircle'
-import { useRef, useEffect } from 'react'
 import type { TriggerDef, ActionDef } from './data'
 
 const initialState: AppState = {
@@ -22,35 +16,14 @@ const initialState: AppState = {
   actions: [],
   editingTriggerId: null,
   editingActionId: null,
+  objectType: null,
 }
 
-function getExistingObject(triggers: AppState['triggers']): 'pet' | 'contact' | null {
-  if (triggers.length === 0) return null
-  const first = triggers[0]
-  const text = (first.name + ' ' + first.triggerId).toLowerCase()
-  if (text.includes('pet')) return 'pet'
-  if (text.includes('contact')) return 'contact'
-  return null
-}
 
 export default function App() {
   const [state, setState] = useState<AppState>(initialState)
-  const [fabTab, setFabTab] = useState<'activate' | 'test'>('activate')
   const [isActive, setIsActive] = useState(false)
-  const [showStatusMenu, setShowStatusMenu] = useState(false)
-  const statusMenuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!showStatusMenu) return
-    function handleClick(e: MouseEvent) {
-      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
-        setShowStatusMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [showStatusMenu])
-  const update = (partial: Partial<AppState>) => setState(s => ({ ...s, ...partial }))
+const update = (partial: Partial<AppState>) => setState(s => ({ ...s, ...partial }))
 
   const openSelectTrigger = () => {
     update({ panel: 'selectTrigger' })
@@ -62,7 +35,14 @@ export default function App() {
       id, triggerId: def.id, name: def.name, description: '',
       configured: false, config: {}
     }
-    update({ triggers: [...state.triggers, newTrigger], editingTriggerId: id, panel: 'configureTrigger' })
+    const nameAndId = (def.name + ' ' + def.id).toLowerCase()
+    const inferredType = nameAndId.includes('pet') ? 'pet' : 'contact'
+    update({
+      triggers: [...state.triggers, newTrigger],
+      editingTriggerId: id,
+      panel: 'configureTrigger',
+      objectType: state.objectType ?? inferredType,
+    })
   }
 
   const onSaveTrigger = (id: string, config: TriggerNode['config'], description: string) => {
@@ -128,6 +108,11 @@ export default function App() {
     panel: state.editingActionId === id ? null : state.panel,
   })
 
+  const onResetObjectType = () => update({
+    objectType: null,
+    actions: state.actions.map(a => ({ ...a, configured: false, config: undefined })),
+  })
+
   const openOverview = () => update({ panel: 'overview' })
   const closePanel = () => update({ panel: null, editingTriggerId: null, editingActionId: null })
   const handleExit = () => { alert('Exiting builder…') }
@@ -137,7 +122,12 @@ export default function App() {
 
   return (
     <div className="app">
-      <TopBar onExit={handleExit} isActive={isActive} />
+      <TopBar
+        onExit={handleExit}
+        isActive={isActive}
+        setIsActive={setIsActive}
+        onActivate={openOverview}
+      />
       <div className="main-layout">
         <LeftSidebar />
         <div className="content-area">
@@ -145,7 +135,9 @@ export default function App() {
             <SelectTriggerPanel
               onSelect={onSelectTrigger}
               onClose={closePanel}
-              existingObject={getExistingObject(state.triggers)}
+              existingObject={state.objectType}
+              lockedWithNoTriggers={state.objectType !== null && state.triggers.length === 0}
+              onResetObjectType={onResetObjectType}
             />
           )}
           {state.panel === 'configureTrigger' && editingTrigger && (
@@ -199,48 +191,6 @@ export default function App() {
         />
       )}
 
-      {/* Floating action bar */}
-      <div className="floating-action-bar">
-        <button
-          className={`fab-btn ${fabTab === 'test' ? 'fab-primary' : 'fab-ghost'}`}
-          onClick={() => setFabTab('test')}
-        >
-          <Power size={15} />
-          Test
-        </button>
-        {isActive ? (
-          <div ref={statusMenuRef} style={{ position: 'relative' }}>
-            <button
-              className="fab-btn fab-manage"
-              onClick={() => setShowStatusMenu(v => !v)}
-            >
-              <Play size={15} />
-              Manage status
-              <ChevronDown size={13} />
-            </button>
-            {showStatusMenu && (
-              <div className="fab-status-menu">
-                <button className="fab-status-item" onClick={() => { setIsActive(false); setShowStatusMenu(false) }}>
-                  <PauseCircle size={15} />
-                  Pause automation
-                </button>
-                <button className="fab-status-item danger" onClick={() => { setIsActive(false); setShowStatusMenu(false) }}>
-                  <XCircle size={15} />
-                  Deactivate automation
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <button
-            className={`fab-btn ${fabTab === 'activate' ? 'fab-primary' : 'fab-ghost'}`}
-            onClick={() => { setFabTab('activate'); openOverview() }}
-          >
-            <Play size={15} />
-            Activate
-          </button>
-        )}
-      </div>
     </div>
   )
 }
